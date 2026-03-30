@@ -26,7 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 15000);
+  const timeout = setTimeout(() => controller.abort(), 30000);
   
   try {
     const response = await fetch(url, {
@@ -68,7 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!summary) summary = $(el).parent().next('p').text().trim();
         if (!summary) summary = 'Visita el sitio para leer más.';
         
-        let link = $(el).attr('href') || url;
+        let link = $(el).attr('href') || $(el).find('a').attr('href') || $(el).closest('a').attr('href') || url;
         if (link.startsWith('/')) {
           const urlObj = new URL(url);
           link = `${urlObj.origin}${link}`;

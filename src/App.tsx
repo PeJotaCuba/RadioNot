@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Howl } from 'howler';
-import { Radio, Play, Pause, SkipBack, SkipForward, Volume2, User, Newspaper, Compass, Library, Trash2, Edit2, Plus } from 'lucide-react';
+import { Radio, Play, Pause, SkipBack, SkipForward, Volume2, User, Newspaper, Compass, Library, Trash2, Edit2, Plus, RefreshCw, Download } from 'lucide-react';
 import { INITIAL_STATIONS, INITIAL_NEWS_SOURCES } from './constants';
 import { Station, NewsSource } from './types';
 
@@ -13,11 +13,25 @@ const AdminDashboard = ({ stations, setStations, newsSources, setNewsSources, on
   const [newStation, setNewStation] = useState({ name: '', slogan: '' });
   const [newSource, setNewSource] = useState({ name: '', url: '' });
 
+  const handleSave = () => {
+    const data = { stations, newsSources };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'radionot.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-950 p-6 overflow-y-auto">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-red-500">Panel Administrador</h2>
-        <button onClick={onClose} className="text-slate-400">Cerrar</button>
+        <div className="flex gap-4">
+          <button onClick={handleSave} className="text-white bg-red-600 px-4 py-2 rounded font-bold">Guardar</button>
+          <button onClick={onClose} className="text-slate-400 px-4 py-2">Cerrar</button>
+        </div>
       </div>
 
       <div className="space-y-8">
@@ -113,6 +127,32 @@ export default function App() {
   const [password, setPassword] = useState('');
   const [showLogin, setShowLogin] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showUpdatePrompt, setShowUpdatePrompt] = useState(true);
+
+  const handleUpdateData = async () => {
+    try {
+      const res = await fetch('https://raw.githubusercontent.com/PeJotaCuba/Bases-de-datos-CMNL/refs/heads/almacen/radionot.json');
+      if (res.ok) {
+        const text = await res.text();
+        if (!text.trim()) {
+          console.warn('Empty JSON response');
+          alert('La base de datos está vacía o no contiene datos válidos.');
+          setShowUpdatePrompt(false);
+          return;
+        }
+        const data = JSON.parse(text);
+        if (data.stations) setStations(data.stations);
+        if (data.newsSources) setNewsSources(data.newsSources);
+        alert('Aplicación actualizada correctamente');
+      } else {
+        alert('No se pudo conectar con el servidor de actualizaciones.');
+      }
+    } catch (error) {
+      console.error('Error updating data:', error);
+      alert('Error al leer o procesar la base de datos.');
+    }
+    setShowUpdatePrompt(false);
+  };
 
   useEffect(() => {
     localStorage.setItem('stations', JSON.stringify(stations));
@@ -133,11 +173,29 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 font-sans">
       <header className="fixed top-0 w-full z-50 flex justify-between items-center px-6 h-16 bg-slate-950/80 backdrop-blur-md transition-colors">
-        <h1 className="text-xl font-bold tracking-tighter text-red-500">RadioNote</h1>
-        <button onClick={() => isAdmin ? setShowAdmin(true) : setShowLogin(true)} className="text-red-500 p-2 rounded-full hover:bg-slate-800">
-          <User size={24} />
-        </button>
+        <h1 className="text-xl font-bold tracking-tighter text-red-500">RadioNot</h1>
+        <div className="flex items-center gap-2">
+          <button onClick={handleUpdateData} className="text-red-500 p-2 rounded-full hover:bg-slate-800" title="Actualizar base de datos">
+            <RefreshCw size={24} />
+          </button>
+          <button onClick={() => isAdmin ? setShowAdmin(true) : setShowLogin(true)} className="text-red-500 p-2 rounded-full hover:bg-slate-800">
+            <User size={24} />
+          </button>
+        </div>
       </header>
+
+      {showUpdatePrompt && (
+        <div className="fixed inset-0 z-[60] bg-black/80 flex items-center justify-center p-6">
+          <div className="bg-slate-900 p-8 rounded-2xl w-full max-w-sm border border-slate-800 text-center">
+            <h2 className="text-xl font-bold mb-4 text-white">Actualización Disponible</h2>
+            <p className="text-slate-400 mb-6">¿Deseas actualizar la lista de emisoras y noticias con los últimos cambios del administrador?</p>
+            <div className="flex gap-4 justify-center">
+              <button onClick={handleUpdateData} className="bg-red-600 text-white px-6 py-2 rounded font-bold">Actualizar</button>
+              <button onClick={() => setShowUpdatePrompt(false)} className="bg-slate-800 text-slate-300 px-6 py-2 rounded">Más tarde</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showLogin && (
         <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-6">
@@ -184,7 +242,19 @@ export default function App() {
             ))}
           </div>
 
-          <div className="mt-8 bg-slate-900 rounded-2xl p-6 shadow-lg border border-slate-800">
+          <div className="mt-8 bg-slate-900 rounded-2xl p-6 shadow-lg border border-slate-800 relative">
+            <button 
+              onClick={() => {
+                if (soundRef.current) {
+                  soundRef.current.unload();
+                  soundRef.current.play();
+                }
+              }}
+              className="absolute top-6 right-6 text-slate-400 hover:text-white transition-colors"
+              title="Sincronizar transmisión"
+            >
+              <RefreshCw size={20} />
+            </button>
             <h2 className="text-lg font-bold text-red-500">{currentStation.name}</h2>
             <p className="text-sm text-slate-400 italic">"{currentStation.slogan}"</p>
             
@@ -217,6 +287,23 @@ export default function App() {
               </div>
             </div>
           </div>
+        </section>
+
+        <section className="px-6 py-10 bg-slate-950 space-y-12">
+          {newsSources.map(source => (
+            <div key={source.id} className="editorial-block">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-8 h-8 rounded bg-red-600 flex items-center justify-center text-white text-[10px] font-bold">{source.logo}</div>
+                <h3 className="text-sm font-extrabold uppercase tracking-widest text-slate-200">{source.name}</h3>
+              </div>
+              {Array.isArray(source.headlines) && source.headlines.map(headline => (
+                <a key={headline.id} href={headline.link} target="_blank" rel="noopener noreferrer" className="block mb-4 hover:bg-slate-900 p-2 rounded transition-colors">
+                  <h4 className="text-lg font-bold leading-tight text-slate-100">{headline.title}</h4>
+                  <p className="text-sm text-slate-400">{headline.summary}</p>
+                </a>
+              ))}
+            </div>
+          ))}
         </section>
       </main>
     </div>

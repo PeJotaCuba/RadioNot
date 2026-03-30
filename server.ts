@@ -13,7 +13,7 @@ async function startServer() {
   app.post("/api/news", async (req, res) => {
     const { url } = req.body;
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 30000);
     try {
       const response = await fetch(url, {
         signal: controller.signal,
@@ -54,7 +54,7 @@ async function startServer() {
           if (!summary) summary = $(el).parent().next('p').text().trim();
           if (!summary) summary = 'Visita el sitio para leer más.';
           
-          let link = $(el).attr('href') || url;
+          let link = $(el).attr('href') || $(el).find('a').attr('href') || $(el).closest('a').attr('href') || url;
           if (link.startsWith('/')) {
             const urlObj = new URL(url);
             link = `${urlObj.origin}${link}`;

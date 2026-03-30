@@ -14,8 +14,8 @@ export default defineConfig(({mode}) => {
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg'],
         manifest: {
-          name: 'Radio Cuba',
-          short_name: 'RadioCuba',
+          name: 'RadioNot',
+          short_name: 'RadioNot',
           description: 'Escucha la radio y lee las noticias de Cuba',
           theme_color: '#020617',
           background_color: '#020617',
